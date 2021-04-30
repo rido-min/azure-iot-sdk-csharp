@@ -1001,7 +1001,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             }
         }
 
-        public override async Task SendPropertyPatchAsync(ClientPropertyCollection reportedProperties, CancellationToken cancellationToken)
+        public override async Task<long> SendPropertyPatchAsync(ClientPropertyCollection reportedProperties, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             EnsureValidState();
@@ -1014,7 +1014,8 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             string rid = Guid.NewGuid().ToString();
             request.MqttTopicName = TwinPatchTopic.FormatInvariant(rid);
 
-            await SendTwinRequestAsync(request, rid, cancellationToken).ConfigureAwait(false);
+            var msg = await SendTwinRequestAsync(request, rid, cancellationToken).ConfigureAwait(false);
+            return Convert.ToInt64(msg.Properties["$version"], CultureInfo.InvariantCulture);
         }
 
         private async Task OpenInternalAsync(CancellationToken cancellationToken)
@@ -1166,6 +1167,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             Message response = null; ;
             ExceptionDispatchInfo responseException = null;
 
+            
             Action<Message> onTwinResponse = (Message possibleResponse) =>
             {
                 try
@@ -1180,6 +1182,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
                             }
                             else
                             {
+                                
                                 response = possibleResponse;
                                 responseReceived.Release();
                             }
