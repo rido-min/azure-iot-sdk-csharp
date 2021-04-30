@@ -1015,7 +1015,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             request.MqttTopicName = TwinPatchTopic.FormatInvariant(rid);
 
             var msg = await SendTwinRequestAsync(request, rid, cancellationToken).ConfigureAwait(false);
-            return Convert.ToInt64(msg.SystemProperties["$version"], CultureInfo.InvariantCulture);
+            return Convert.ToInt64(msg.Properties["$version"], CultureInfo.InvariantCulture);
         }
 
         private async Task OpenInternalAsync(CancellationToken cancellationToken)
@@ -1144,20 +1144,18 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
                         QualityOfService.AtMostOnce)));
         }
 
-        private bool ParseResponseTopic(string topicName, out string rid, out int status, out long version)
+        private bool ParseResponseTopic(string topicName, out string rid, out int status)
         {
             Match match = _twinResponseTopicRegex.Match(topicName);
             if (match.Success)
             {
                 status = Convert.ToInt32(match.Groups[1].Value, CultureInfo.InvariantCulture);
                 rid = HttpUtility.ParseQueryString(match.Groups[2].Value).Get("$rid");
-                version = Convert.ToInt64(HttpUtility.ParseQueryString(match.Groups[2].Value).Get("$version"), CultureInfo.InvariantCulture);
                 return true;
             }
 
             rid = "";
             status = 500;
-            version = -1;
             return false;
         }
 
@@ -1174,7 +1172,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             {
                 try
                 {
-                    if (ParseResponseTopic(possibleResponse.MqttTopicName, out string receivedRid, out int status, out long version))
+                    if (ParseResponseTopic(possibleResponse.MqttTopicName, out string receivedRid, out int status))
                     {
                         if (rid == receivedRid)
                         {
@@ -1186,10 +1184,6 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
                             {
                                 
                                 response = possibleResponse;
-                                if (version > 0)
-                                {
-                                    response.SystemProperties.Add("$version", version);
-                                }
                                 responseReceived.Release();
                             }
                         }
