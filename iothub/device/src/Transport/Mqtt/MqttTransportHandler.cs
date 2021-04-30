@@ -1001,7 +1001,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             }
         }
 
-        public override async Task<int> SendPropertyPatchAsync(ClientPropertyCollection reportedProperties, CancellationToken cancellationToken)
+        public override async Task<long> SendPropertyPatchAsync(ClientPropertyCollection reportedProperties, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             EnsureValidState();
@@ -1015,7 +1015,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             request.MqttTopicName = TwinPatchTopic.FormatInvariant(rid);
 
             var msg = await SendTwinRequestAsync(request, rid, cancellationToken).ConfigureAwait(false);
-            return Convert.ToInt32(msg.SystemProperties["$version"], CultureInfo.InvariantCulture);
+            return Convert.ToInt64(msg.SystemProperties["$version"], CultureInfo.InvariantCulture);
         }
 
         private async Task OpenInternalAsync(CancellationToken cancellationToken)
@@ -1144,7 +1144,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
                         QualityOfService.AtMostOnce)));
         }
 
-        private bool ParseResponseTopic(string topicName, out string rid, out int status, out int version)
+        private bool ParseResponseTopic(string topicName, out string rid, out int status, out long version)
         {
             Match match = _twinResponseTopicRegex.Match(topicName);
             if (match.Success)
@@ -1174,7 +1174,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             {
                 try
                 {
-                    if (ParseResponseTopic(possibleResponse.MqttTopicName, out string receivedRid, out int status, out int version))
+                    if (ParseResponseTopic(possibleResponse.MqttTopicName, out string receivedRid, out int status, out long version))
                     {
                         if (rid == receivedRid)
                         {

@@ -628,7 +628,7 @@ namespace Microsoft.Azure.Devices.Client.Transport
             }
         }
 
-        public override async Task<int> SendPropertyPatchAsync(ClientPropertyCollection reportedProperties, CancellationToken cancellationToken)
+        public override async Task<long> SendPropertyPatchAsync(ClientPropertyCollection reportedProperties, CancellationToken cancellationToken)
         {
             try
             {
