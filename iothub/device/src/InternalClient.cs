@@ -1904,7 +1904,7 @@ namespace Microsoft.Azure.Devices.Client
             }
         }
 
-        internal Task UpdateClientPropertiesAsync(ClientPropertyCollection clientProperties, CancellationToken cancellationToken)
+        internal Task<int> UpdateClientPropertiesAsync(ClientPropertyCollection clientProperties, CancellationToken cancellationToken)
         {
             try
             {

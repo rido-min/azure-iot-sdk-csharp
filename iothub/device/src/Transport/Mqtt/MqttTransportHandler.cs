@@ -1001,7 +1001,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             }
         }
 
-        public override async Task SendPropertyPatchAsync(ClientPropertyCollection reportedProperties, CancellationToken cancellationToken)
+        public override async Task<int> SendPropertyPatchAsync(ClientPropertyCollection reportedProperties, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             EnsureValidState();
@@ -1014,7 +1014,8 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             string rid = Guid.NewGuid().ToString();
             request.MqttTopicName = TwinPatchTopic.FormatInvariant(rid);
 
-            await SendTwinRequestAsync(request, rid, cancellationToken).ConfigureAwait(false);
+            var msg = await SendTwinRequestAsync(request, rid, cancellationToken).ConfigureAwait(false);
+            return Convert.ToInt32(msg.SystemProperties["$version"], CultureInfo.InvariantCulture);
         }
 
         private async Task OpenInternalAsync(CancellationToken cancellationToken)
@@ -1143,18 +1144,20 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
                         QualityOfService.AtMostOnce)));
         }
 
-        private bool ParseResponseTopic(string topicName, out string rid, out int status)
+        private bool ParseResponseTopic(string topicName, out string rid, out int status, out int version)
         {
             Match match = _twinResponseTopicRegex.Match(topicName);
             if (match.Success)
             {
                 status = Convert.ToInt32(match.Groups[1].Value, CultureInfo.InvariantCulture);
                 rid = HttpUtility.ParseQueryString(match.Groups[2].Value).Get("$rid");
+                version = Convert.ToInt32(HttpUtility.ParseQueryString(match.Groups[2].Value).Get("$version"), CultureInfo.InvariantCulture);
                 return true;
             }
 
             rid = "";
             status = 500;
+            version = -1;
             return false;
         }
 
@@ -1166,11 +1169,12 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             Message response = null; ;
             ExceptionDispatchInfo responseException = null;
 
+            
             Action<Message> onTwinResponse = (Message possibleResponse) =>
             {
                 try
                 {
-                    if (ParseResponseTopic(possibleResponse.MqttTopicName, out string receivedRid, out int status))
+                    if (ParseResponseTopic(possibleResponse.MqttTopicName, out string receivedRid, out int status, out int version))
                     {
                         if (rid == receivedRid)
                         {
@@ -1180,7 +1184,12 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
                             }
                             else
                             {
+                                
                                 response = possibleResponse;
+                                if (version > 0)
+                                {
+                                    response.SystemProperties.Add("$version", version);
+                                }
                                 responseReceived.Release();
                             }
                         }
