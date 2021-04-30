@@ -1151,7 +1151,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             {
                 status = Convert.ToInt32(match.Groups[1].Value, CultureInfo.InvariantCulture);
                 rid = HttpUtility.ParseQueryString(match.Groups[2].Value).Get("$rid");
-                version = Convert.ToInt32(HttpUtility.ParseQueryString(match.Groups[2].Value).Get("$version"), CultureInfo.InvariantCulture);
+                version = Convert.ToInt64(HttpUtility.ParseQueryString(match.Groups[2].Value).Get("$version"), CultureInfo.InvariantCulture);
                 return true;
             }
 
